@@ -1,107 +1,147 @@
-const pool = require("../../db");
+const database = require("../config/database");
+const { AppError } = require("../middleware/errorHandler");
 
-const BenhNhanModel = {
-    async getAll(page = 1, limit = 10, query = "") {
-        try {
-            const pageNum = parseInt(page, 10) || 1;
-            const limitNum = parseInt(limit, 10) || 10;
-            const offset = (pageNum - 1) * limitNum;
-            let whereClause = "";
-            let params = [];
-            let countParams = [];
-            let sqlQuery = "";
+class BenhNhanModel {
+  static tableName = "benhnhan";
 
+  static async findAll() {
+    try {
+      const query = `SELECT * FROM ${this.tableName} ORDER BY updatedat DESC`;
+      const result = await database.query(query);
+      return result.rows;
+    } catch (error) {
+      throw new AppError("Lỗi khi lấy danh sách bệnh nhân", 500);
+    }
+  }
 
-            if (query && typeof query === "string" && query.trim() !== "") {
-                whereClause = "WHERE LOWER(hoten) LIKE $1 OR LOWER(sodienthoai) LIKE $1";
-                const searchTerm = `%${query.trim().toLowerCase()}%`;
-                params.push(searchTerm);
-                countParams.push(searchTerm);
-                sqlQuery = `SELECT * FROM benhnhan ${whereClause} ORDER BY updatedat DESC LIMIT $2 OFFSET $3`;
-                params.push(limitNum, offset);
-            } else {
-                sqlQuery = `SELECT * FROM benhnhan ORDER BY updatedat DESC LIMIT $1 OFFSET $2`;
-                params = [limitNum, offset];
-            }
+  static async findWithPagination(limit, offset, search = "") {
+    try {
+      let whereClause = "";
+      let params = [];
+      let countParams = [];
 
+      if (search && search.trim() !== "") {
+        whereClause =
+          "WHERE LOWER(hoten) LIKE $1 OR LOWER(sodienthoai) LIKE $1";
+        const searchPattern = `%${search.toLowerCase()}%`;
+        params.push(searchPattern);
+        countParams.push(searchPattern);
+      }
 
-            const result = await pool.query(sqlQuery, params);
+      // Get total count
+      const countQuery = `SELECT COUNT(*) FROM ${this.tableName} ${whereClause}`;
+      const totalResult = await database.query(countQuery, countParams);
+      const total = parseInt(totalResult.rows[0].count);
 
-            const countQuery = `SELECT COUNT(*) as total FROM benhnhan ${whereClause}`;
-            const totalResult = await pool.query(countQuery, countParams);
-            const total = parseInt(totalResult.rows[0].total, 10);
+      // Get paginated data
+      const dataQuery = `
+                SELECT * FROM ${this.tableName} 
+                ${whereClause} 
+                ORDER BY updatedat DESC 
+                LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+            `;
+      params.push(limit, offset);
+      const dataResult = await database.query(dataQuery, params);
 
+      return {
+        data: dataResult.rows,
+        total,
+      };
+    } catch (error) {
+      throw new AppError("Lỗi khi lấy danh sách bệnh nhân có phân trang", 500);
+    }
+  }
 
-            return { data: result.rows, total };
-        } catch (error) {
-            console.error("Error in getAll:", error);
-            throw new Error("Không thể lấy danh sách bệnh nhân");
-        }
-    },
+  static async findById(id) {
+    try {
+      const query = `SELECT * FROM ${this.tableName} WHERE benhnhanid = $1`;
+      const result = await database.query(query, [id]);
+      return result.rows[0];
+    } catch (error) {
+      throw new AppError("Lỗi khi tìm bệnh nhân theo ID", 500);
+    }
+  }
 
-    async getById(id) {
-        try {
-            const result = await pool.query(
-                "SELECT * FROM benhnhan WHERE benhnhanid = $1",
-                [parseInt(id)]
-            );
-            if (result.rows.length === 0) {
-                throw new Error("Bệnh nhân không tồn tại");
-            }
-            return result.rows[0];
-        } catch (error) {
-            console.error("Error in getById:", error);
-            throw error;
-        }
-    },
+  static async create(data) {
+    try {
+      const { hoten, tuoi, sodienthoai, tiensubenh, diachi, email } = data;
+      const query = `
+                INSERT INTO ${this.tableName} 
+                (hoten, tuoi, sodienthoai, tiensubenh, diachi, email, createdat, updatedat) 
+                VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) 
+                RETURNING *
+            `;
+      const result = await database.query(query, [
+        hoten,
+        tuoi || null,
+        sodienthoai || null,
+        tiensubenh || null,
+        diachi || null,
+        email || null,
+      ]);
+      return result.rows[0];
+    } catch (error) {
+      if (error.code === "23505") {
+        // Unique constraint violation
+        throw new AppError("Số điện thoại hoặc email đã tồn tại", 409);
+      }
+      throw new AppError("Lỗi khi tạo bệnh nhân mới", 500);
+    }
+  }
 
-    async create(benhNhan) {
-        try {
-            const { hoten, tuoi, sodienthoai, tiensubenh } = benhNhan;
-            const result = await pool.query(
-                "INSERT INTO benhnhan (hoten, tuoi, sodienthoai, tiensubenh, createdat, updatedat) VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING *",
-                [hoten, tuoi || null, sodienthoai || null, tiensubenh || null]
-            );
+  static async update(id, data) {
+    try {
+      const { hoten, tuoi, sodienthoai, tiensubenh, diachi, email } = data;
+      const query = `
+                UPDATE ${this.tableName} 
+                SET hoten = $1, tuoi = $2, sodienthoai = $3, tiensubenh = $4, 
+                    diachi = $5, email = $6, updatedat = NOW() 
+                WHERE benhnhanid = $7 
+                RETURNING *
+            `;
+      const result = await database.query(query, [
+        hoten,
+        tuoi || null,
+        sodienthoai || null,
+        tiensubenh || null,
+        diachi || null,
+        email || null,
+        id,
+      ]);
 
-            return result.rows[0];
-        } catch (error) {
-            console.error("Error in create:", error);
-            throw new Error("Không thể tạo bệnh nhân");
-        }
-    },
+      if (result.rows.length === 0) {
+        throw new AppError("Bệnh nhân không tồn tại", 404);
+      }
 
-    async update(id, benhNhan) {
-        try {
-            const { hoten, tuoi, sodienthoai, tiensubenh } = benhNhan;
-            const result = await pool.query(
-                "UPDATE benhnhan SET hoten=$1, tuoi=$2, sodienthoai=$3, tiensubenh=$4, updatedat=NOW() WHERE benhnhanid=$5 RETURNING *",
-                [hoten, tuoi, sodienthoai, tiensubenh || null, parseInt(id)]
-            );
-            if (result.rows.length === 0) {
-                throw new Error("Bệnh nhân không tồn tại");
-            }
-            return result.rows[0];
-        } catch (error) {
-            console.error("Error in update:", error);
-            throw error;
-        }
-    },
+      return result.rows[0];
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      if (error.code === "23505") {
+        throw new AppError("Số điện thoại hoặc email đã tồn tại", 409);
+      }
+      throw new AppError("Lỗi khi cập nhật bệnh nhân", 500);
+    }
+  }
 
-    async delete(id) {
-        try {
-            const result = await pool.query(
-                "DELETE FROM benhnhan WHERE benhnhanid=$1 RETURNING *",
-                [parseInt(id)]
-            );
-            if (result.rowCount === 0) {
-                throw new Error("Bệnh nhân không tồn tại");
-            }
-            return { message: "Xóa bệnh nhân thành công", rowCount: result.rowCount };
-        } catch (error) {
-            console.error("Error in delete:", error);
-            throw error;
-        }
-    },
-};
+  static async delete(id) {
+    try {
+      const query = `DELETE FROM ${this.tableName} WHERE benhnhanid = $1 RETURNING *`;
+      const result = await database.query(query, [id]);
+
+      if (result.rows.length === 0) {
+        throw new AppError("Bệnh nhân không tồn tại", 404);
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      if (error.code === "23503") {
+        // Foreign key constraint violation
+        throw new AppError("Không thể xóa bệnh nhân vì đang có đơn thuốc", 409);
+      }
+      throw new AppError("Lỗi khi xóa bệnh nhân", 500);
+    }
+  }
+}
 
 module.exports = BenhNhanModel;
