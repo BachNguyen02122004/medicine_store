@@ -9,15 +9,15 @@
   "test": {
     "username": "postgres",
     "password": "12345678",
-    "database": "medicine_store_test",
+    "database": "medicine_store",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   "production": {
     "username": "postgres",
     "password": "12345678",
-    "database": "medicine_store_production",
-    "host": "127.0.0.1",
+    "database": "medicine_store",
+    "host": "db",
     "dialect": "postgres"
   }
 }

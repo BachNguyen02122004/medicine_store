@@ -1,4 +1,10 @@
 {
+  "scripts": {
+    "start": "node index.js",
+    "migrate": "sequelize-cli db:migrate",
+    "seed": "sequelize-cli db:seed:all",
+    "setup": "npm run migrate && npm run seed"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
