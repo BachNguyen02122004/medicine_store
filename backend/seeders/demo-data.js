@@ -57,10 +57,11 @@ module.exports = {
         for (let i = 1; i <= 20; i++) {
             chiTietData.push({
                 toaid: i,
-                thuocid: i, // map trực tiếp 1->20
+                thuocid: i,
                 soluong: Math.floor(Math.random() * 30) + 10,
                 sothang: Math.floor(Math.random() * 5) + 1,
                 chuy: i % 2 === 0 ? "uống sau bữa ăn" : "uống trước bữa ăn",
+                luuydonthuoc: i % 2 === 0 ? "Lưu ý: Uống nhiều nước" : "Lưu ý: Không uống rượu",
                 createdat: new Date(),
                 updatedat: new Date(),
             });

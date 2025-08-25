@@ -21,7 +21,7 @@ import { toast, Toaster } from 'sonner';
 
 const PageHeader = ({ onAdd }) => (
     <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+        <Typography className="text-center bold text-5xl" variant="h4" component="h1" gutterBottom>
             Quản Lý Đơn Thuốc
         </Typography>
         <Button variant="contained" color="primary" onClick={onAdd}>
@@ -38,6 +38,7 @@ const AddPrescriptionModal = ({ open, onClose, onSuccess }) => {
     const [benhNhanList, setBenhNhanList] = useState([]);
     const [dichVuList, setDichVuList] = useState([]);
     const [selectedDichVu, setSelectedDichVu] = useState([]);
+    const [note, setNote] = useState("");
 
     useEffect(() => {
         fetch("http://localhost:5000/api/thuoc")
@@ -105,7 +106,8 @@ const AddPrescriptionModal = ({ open, onClose, onSuccess }) => {
                     dichvuid: Number(item.dichvuid),
                     songay: Number(item.songay),
                     dates: item.dates
-                }))
+                })),
+                note
             })
         });
         toast.success("Thêm đơn thuốc thành công!");
@@ -135,6 +137,16 @@ const AddPrescriptionModal = ({ open, onClose, onSuccess }) => {
                                 ))}
                             </TextField>
                         </Box>
+                    </Box>
+                    <Box sx={{ mb: 2 }}>
+                        <TextField
+                            label="Ghi chú"
+                            multiline
+                            minRows={3}
+                            value={note}
+                            onChange={e => setNote(e.target.value)}
+                            fullWidth
+                        />
                     </Box>
                     <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                         <Typography sx={{ minWidth: 120, flexShrink: 0 }}>Thuốc:</Typography>
@@ -213,6 +225,19 @@ const AddPrescriptionModal = ({ open, onClose, onSuccess }) => {
 const PrescriptionTable = ({ prescriptions, onViewDetails }) => {
     const columns = [
         { field: 'patientname', headerName: 'Họ Tên Bệnh Nhân', width: 200 },
+        {
+            field: 'luuybenhnhan',
+            headerName: 'Lưu ý bệnh nhân',
+            width: 220,
+            renderCell: (params) => {
+                const luuYArr = params.row.medicines?.map(m => m.luuydonthuoc).filter(Boolean);
+                return luuYArr && luuYArr.length > 0 ? (
+                    <div className='flex flex-col'>
+                        {luuYArr.map((ly, idx) => <div key={idx}>{ly}</div>)}
+                    </div>
+                ) : <span style={{ color: '#888' }}>Không có</span>;
+            }
+        },
         { field: 'examinationdate', headerName: 'Ngày Khám', width: 150 },
         {
             field: 'medicines', headerName: 'Chi Tiết Đơn Thuốc', width: 300, renderCell: (params) => {
@@ -248,9 +273,11 @@ const PrescriptionTable = ({ prescriptions, onViewDetails }) => {
     ];
 
     return (
-        <Paper sx={{ height: 400, width: '100%' }}>
-            <DataGrid rows={prescriptions} columns={columns} pageSize={5} rowsPerPageOptions={[5]} />
-        </Paper>
+        <Box display="flex" justifyContent="center" alignItems="center" sx={{ width: '100%' }}>
+            <Paper sx={{ height: 500, width: 1200, maxWidth: '100%' }}>
+                <DataGrid rows={prescriptions} columns={columns} pageSize={5} rowsPerPageOptions={[5]} />
+            </Paper>
+        </Box>
     );
 };
 

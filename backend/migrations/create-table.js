@@ -100,6 +100,10 @@ module.exports = {
                 type: Sequelize.TEXT,
                 allowNull: true,
             },
+            luuydonthuoc: {
+                type: Sequelize.TEXT,
+                allowNull: true,
+            },
             createdat: { allowNull: false, type: Sequelize.DATE },
             updatedat: { allowNull: false, type: Sequelize.DATE },
         });
