@@ -1,1 +1,3 @@
-# medicine_store
+run docker
+
+docker compose up --build -d
