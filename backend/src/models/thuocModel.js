@@ -1,57 +1,139 @@
-const pool = require("../../db");
-const ThuocModel = {
-    async getAll() {
-        const result = await pool.query("SELECT * FROM Thuoc ORDER BY updatedat desc");
-        return result.rows;
-    },
+const database = require("../config/database");
+const { AppError } = require("../middleware/errorHandler");
 
-    async getPagination(limit, offset, search) {
-        let whereClause = "";
-        let params = [];
-        let countParams = [];
-        if (search && search.trim() !== "") {
-            whereClause = "WHERE LOWER(TenThuoc) LIKE $1";
-            params.push(`%${search.toLowerCase()}%`);
-            countParams.push(`%${search.toLowerCase()}%`);
-        }
-        // lấy tổng số bản ghi
-        const totalResult = await pool.query(
-            `SELECT COUNT(*) FROM Thuoc ${whereClause}`,
-            countParams
-        );
-        const total = parseInt(totalResult.rows[0].count);
+class ThuocModel {
+  static tableName = "Thuoc";
 
-        // lấy dữ liệu phân trang
-        let query = `SELECT * FROM Thuoc ${whereClause} ORDER BY updatedat desc LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-        params.push(limit, offset);
-        const dataResult = await pool.query(query, params);
+  static async findAll() {
+    try {
+      const query = `SELECT * FROM ${this.tableName} ORDER BY updatedat DESC`;
+      const result = await database.query(query);
+      return result.rows;
+    } catch (error) {
+      throw new AppError("Lỗi khi lấy danh sách thuốc", 500);
+    }
+  }
 
-        return { data: dataResult.rows, total };
-    },
+  static async findWithPagination(limit, offset, search = "") {
+    try {
+      let whereClause = "";
+      let params = [];
+      let countParams = [];
 
-    async create({ tenthuoc, soluongcong, giatienmotcong }) {
-        const result = await pool.query(
-            "INSERT INTO Thuoc (TenThuoc, SoLuongCong, GiaTienMotCong, updatedat, createdat) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING *",
-            [tenthuoc, soluongcong, giatienmotcong]
-        );
-        return result.rows[0];
-    },
+      if (search && search.trim() !== "") {
+        whereClause = "WHERE LOWER(TenThuoc) LIKE $1";
+        const searchPattern = `%${search.toLowerCase()}%`;
+        params.push(searchPattern);
+        countParams.push(searchPattern);
+      }
 
-    async update(id, { tenthuoc, soluongcong, giatienmotcong }) {
-        const result = await pool.query(
-            "UPDATE Thuoc SET TenThuoc=$1, SoLuongCong=$2, GiaTienMotCong=$3, updatedat=NOW() WHERE ThuocID=$4 RETURNING *",
-            [tenthuoc, soluongcong, giatienmotcong, id]
-        );
-        return result.rows[0];
-    },
+      // Get total count
+      const countQuery = `SELECT COUNT(*) FROM ${this.tableName} ${whereClause}`;
+      const totalResult = await database.query(countQuery, countParams);
+      const total = parseInt(totalResult.rows[0].count);
 
-    async delete(id) {
-        const result = await pool.query(
-            "DELETE FROM Thuoc WHERE ThuocID=$1 RETURNING *",
-            [id]
-        );
-        return result.rows[0];
-    },
-};
+      // Get paginated data
+      const dataQuery = `
+                SELECT * FROM ${this.tableName} 
+                ${whereClause} 
+                ORDER BY updatedat DESC 
+                LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+            `;
+      params.push(limit, offset);
+      const dataResult = await database.query(dataQuery, params);
+
+      return {
+        data: dataResult.rows,
+        total,
+      };
+    } catch (error) {
+      throw new AppError("Lỗi khi lấy danh sách thuốc có phân trang", 500);
+    }
+  }
+
+  static async findById(id) {
+    try {
+      const query = `SELECT * FROM ${this.tableName} WHERE ThuocID = $1`;
+      const result = await database.query(query, [id]);
+      return result.rows[0];
+    } catch (error) {
+      throw new AppError("Lỗi khi tìm thuốc theo ID", 500);
+    }
+  }
+
+  static async create(data) {
+    try {
+      const { tenthuoc, soluongcong, giatienmotcong } = data;
+      const query = `
+                INSERT INTO ${this.tableName} 
+                (TenThuoc, SoLuongCong, GiaTienMotCong, updatedat, createdat) 
+                VALUES ($1, $2, $3, NOW(), NOW()) 
+                RETURNING *
+            `;
+      const result = await database.query(query, [
+        tenthuoc,
+        soluongcong,
+        giatienmotcong,
+      ]);
+      return result.rows[0];
+    } catch (error) {
+      if (error.code === "23505") {
+        // Unique constraint violation
+        throw new AppError("Tên thuốc đã tồn tại", 409);
+      }
+      throw new AppError("Lỗi khi tạo thuốc mới", 500);
+    }
+  }
+
+  static async update(id, data) {
+    try {
+      const { tenthuoc, soluongcong, giatienmotcong } = data;
+      const query = `
+                UPDATE ${this.tableName} 
+                SET TenThuoc = $1, SoLuongCong = $2, GiaTienMotCong = $3, updatedat = NOW() 
+                WHERE ThuocID = $4 
+                RETURNING *
+            `;
+      const result = await database.query(query, [
+        tenthuoc,
+        soluongcong,
+        giatienmotcong,
+        id,
+      ]);
+
+      if (result.rows.length === 0) {
+        throw new AppError("Thuốc không tồn tại", 404);
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      if (error.code === "23505") {
+        throw new AppError("Tên thuốc đã tồn tại", 409);
+      }
+      throw new AppError("Lỗi khi cập nhật thuốc", 500);
+    }
+  }
+
+  static async delete(id) {
+    try {
+      const query = `DELETE FROM ${this.tableName} WHERE ThuocID = $1 RETURNING *`;
+      const result = await database.query(query, [id]);
+
+      if (result.rows.length === 0) {
+        throw new AppError("Thuốc không tồn tại", 404);
+      }
+
+      return result.rows[0];
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      if (error.code === "23503") {
+        // Foreign key constraint violation
+        throw new AppError("Không thể xóa thuốc vì đang được sử dụng", 409);
+      }
+      throw new AppError("Lỗi khi xóa thuốc", 500);
+    }
+  }
+}
 
 module.exports = ThuocModel;

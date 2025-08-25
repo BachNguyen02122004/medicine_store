@@ -1,82 +1,70 @@
 const BenhNhanModel = require("../models/benhNhanModel");
+const { catchAsync } = require("../utils/helpers");
+const {
+  sendSuccess,
+  sendPaginatedResponse,
+} = require("../utils/responseHelper");
+const { AppError } = require("../middleware/errorHandler");
 
-const benhNhanController = {
-    async getAllBenhNhan(req, res) {
-        try {
-            const { page = 1, limit = 10, search = "" } = req.query;
+class BenhNhanController {
+  static getAllBenhNhan = catchAsync(async (req, res) => {
+    const { page, limit, offset } = req.pagination;
+    const { search = "" } = req.query;
 
-            const result = await BenhNhanModel.getAll(page, limit, search);
-            res.json({ data: result.data, total: result.total });
-        } catch (err) {
-            console.error("Lỗi khi lấy danh sách bệnh nhân:", err);
-            res.status(500).json({ error: "Lỗi server: " + err.message });
-        }
-    },
+    const result = await BenhNhanModel.findWithPagination(
+      limit,
+      offset,
+      search
+    );
 
-    async getBenhNhanById(req, res) {
-        try {
-            const id = req.params.id;
-            if (!id || isNaN(id)) {
-                return res.status(400).json({ error: "ID không hợp lệ" });
-            }
-            const benhNhan = await BenhNhanModel.getById(id);
-            if (!benhNhan) {
-                return res.status(404).json({ error: "Bệnh nhân không tồn tại" });
-            }
-            res.json(benhNhan);
-        } catch (err) {
-            console.error("Lỗi khi lấy bệnh nhân:", err);
-            res.status(500).json({ error: "Lỗi server: " + err.message });
-        }
-    },
+    sendPaginatedResponse(
+      res,
+      "Lấy danh sách bệnh nhân thành công",
+      result.data,
+      {
+        page,
+        limit,
+        total: result.total,
+        totalPages: Math.ceil(result.total / limit),
+      }
+    );
+  });
 
-    async createBenhNhan(req, res) {
-        try {
-            const benhNhan = req.body;
-            if (!benhNhan.hoten) {
-                return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
-            }
-            const newBenhNhan = await BenhNhanModel.create(benhNhan);
-            res.status(201).json(newBenhNhan);
-        } catch (err) {
-            console.error("Lỗi khi tạo bệnh nhân:", err);
-            res.status(500).json({ error: "Lỗi server: " + err.message });
-        }
-    },
+  static getBenhNhanById = catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const benhNhan = await BenhNhanModel.findById(id);
 
-    async updateBenhNhan(req, res) {
-        try {
-            const id = req.params.id;
-            if (!id || isNaN(id)) {
-                return res.status(400).json({ error: "ID không hợp lệ" });
-            }
-            const benhNhan = req.body;
-            if (!benhNhan.hoten) {
-                return res.status(400).json({ error: "Thiếu thông tin bắt buộc" });
-            }
-            const updatedBenhNhan = await BenhNhanModel.update(id, benhNhan);
-            res.json(updatedBenhNhan);
-        } catch (err) {
-            console.error("Lỗi khi cập nhật bệnh nhân:", err);
-            res.status(500).json({ error: "Lỗi server: " + err.message });
-        }
-    },
+    if (!benhNhan) {
+      throw new AppError("Bệnh nhân không tồn tại", 404);
+    }
 
-    async deleteBenhNhan(req, res) {
-        try {
-            const id = req.params.id;
+    sendSuccess(res, "Lấy thông tin bệnh nhân thành công", benhNhan);
+  });
 
-            if (!id || isNaN(id)) {
-                return res.status(400).json({ error: "ID không hợp lệ" });
-            }
-            const idInt = parseInt(id, 10);
-            await BenhNhanModel.delete(idInt);
-            res.json({ message: "Xóa bệnh nhân thành công" });
-        } catch (err) {
-            console.error("Lỗi khi xóa bệnh nhân:", err);
-            res.status(500).json({ error: "Lỗi server: " + err.message });
-        }
-    },
-};
+  static createBenhNhan = catchAsync(async (req, res) => {
+    const benhNhanData = req.body;
 
-module.exports = benhNhanController;
+    const newBenhNhan = await BenhNhanModel.create(benhNhanData);
+
+    sendSuccess(res, "Tạo bệnh nhân mới thành công", newBenhNhan, 201);
+  });
+
+  static updateBenhNhan = catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const benhNhanData = req.body;
+
+    const updatedBenhNhan = await BenhNhanModel.update(id, benhNhanData);
+
+    sendSuccess(res, "Cập nhật bệnh nhân thành công", updatedBenhNhan);
+  });
+
+  static deleteBenhNhan = catchAsync(async (req, res) => {
+    const { id } = req.params;
+
+    await BenhNhanModel.delete(id);
+
+    sendSuccess(res, "Xóa bệnh nhân thành công");
+  });
+}
+
+module.exports = BenhNhanController;
