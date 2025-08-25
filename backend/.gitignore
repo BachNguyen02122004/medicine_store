@@ -1,0 +1,33 @@
+# Node.js
+node_modules/
+.env
+npm-debug.log
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+/dist/
+/build/
+
+# Vite
+.vite/
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.sqlite
+*.db
+
+# Coverage
+coverage/
+
+# Others
+frontend/public/vite.svg
