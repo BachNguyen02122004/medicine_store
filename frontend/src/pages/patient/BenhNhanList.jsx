@@ -31,10 +31,11 @@ function BenhNhanList({ benhnhans, onEdit, onDelete }) {
                 id: data.id,
                 patientName: data.patientname || '',
                 examinationDate: data.examinationdate ? new Date(data.examinationdate).toLocaleDateString('vi-VN') : '',
-                prescriptionDetails: data.prescriptiondetails || '',
-                services: data.services || '',
+                medicines: Array.isArray(data.medicines) ? data.medicines : [],
+                services: Array.isArray(data.services) ? data.services : [],
                 price: data.price != null && !isNaN(data.price) ? Number(data.price) : 0
             }] : [];
+            console.log('Parsed orders:', orders);
             setCartOrders(orders);
             setCartPatient(bn);
             setOpenCart(true);
@@ -155,8 +156,28 @@ function BenhNhanList({ benhnhans, onEdit, onDelete }) {
                                     <TableRow key={order.id}>
                                         <TableCell>{order.id}</TableCell>
                                         <TableCell>{order.examinationDate}</TableCell>
-                                        <TableCell>{order.prescriptionDetails}</TableCell>
-                                        <TableCell>{order.services || 'Không có'}</TableCell>
+                                        <TableCell>
+                                            {Array.isArray(order.medicines) && order.medicines.length > 0 ? (
+                                                <ul style={{ paddingLeft: 16, margin: 0 }}>
+                                                    {order.medicines.map((med, idx) => (
+                                                        <li key={idx}>
+                                                            {med.tenthuoc} (x{med.soluong}){med.chuy ? ` - ${med.chuy}` : ''}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : <span style={{ color: '#888' }}>Không có</span>}
+                                        </TableCell>
+                                        <TableCell>
+                                            {Array.isArray(order.services) && order.services.length > 0 ? (
+                                                <ul style={{ paddingLeft: 16, margin: 0 }}>
+                                                    {order.services.map((sv, idx) => (
+                                                        <li key={idx}>
+                                                            {sv.tendichvu} ({sv.songay} ngày)
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : <span style={{ color: '#888' }}>Không có</span>}
+                                        </TableCell>
                                         <TableCell>{order.price ? Number(order.price).toLocaleString() + ' VND' : ''}</TableCell>
                                         <TableCell>
                                             <Button variant="outlined" onClick={() => handleViewOrderDetail(order)}>

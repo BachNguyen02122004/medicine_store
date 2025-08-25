@@ -53,10 +53,10 @@ exports.updatePrescription = async (req, res) => {
         res.status(500).json({ error: "Lỗi khi cập nhật đơn thuốc" });
     }
 };
-// Thêm đơn thuốc mới
+
 exports.createPrescription = async (req, res) => {
     const pool = require("../../db");
-    const { patientName, medicines, services } = req.body; // services: [{ dichvuid, songay, dates }]
+    const { patientName, medicines, services, note } = req.body;
     if (!patientName || !Array.isArray(medicines) || medicines.length === 0) {
         return res.status(400).json({ error: "Thiếu thông tin bệnh nhân hoặc thuốc" });
     }
@@ -83,15 +83,15 @@ exports.createPrescription = async (req, res) => {
         // 3. Thêm chi tiết đơn thuốc và tính tổng tiền
         let tongtien = 0;
         for (const med of medicines) {
-            if (!med.thuocid || med.thuocid === 0) continue; // Bỏ qua thuốc chưa chọn hoặc không hợp lệ
+            if (!med.thuocid || med.thuocid === 0) continue;
             // Lấy giá thuốc
             const thuocRes = await pool.query("SELECT giatienmotcong FROM thuoc WHERE thuocid = $1", [med.thuocid]);
             const giatienmotcong = thuocRes.rows[0]?.giatienmotcong || 0;
             const thanhtien = Number(giatienmotcong) * Number(med.soluong);
             tongtien += thanhtien;
             await pool.query(
-                "INSERT INTO chitiettoathuoc (toaid, thuocid, soluong, createdat, updatedat) VALUES ($1, $2, $3, NOW(), NOW())",
-                [toaid, med.thuocid, med.soluong]
+                "INSERT INTO chitiettoathuoc (toaid, thuocid, soluong, luuydonthuoc, createdat, updatedat) VALUES ($1, $2, $3, $4, NOW(), NOW())",
+                [toaid, med.thuocid, med.soluong, note || null]
             );
         }
         // Thêm dịch vụ nếu có
@@ -142,7 +142,8 @@ exports.getPrescriptions = async (req, res) => {
                         'thuocid', ct.thuocid,
                         'soluong', ct.soluong,
                         'chuy', ct.chuy,
-                        'tenthuoc', th.tenthuoc
+                        'tenthuoc', th.tenthuoc,
+                        'luuydonthuoc', ct.luuydonthuoc
                     ))
                     FROM chitiettoathuoc ct
                     JOIN thuoc th ON ct.thuocid = th.thuocid
@@ -181,24 +182,34 @@ exports.getPrescriptionDetail = async (req, res) => {
                 b.hoten AS patientName,
                 t.ngaykadon AS examinationDate,
                 COALESCE(tt.tongtien, 0) AS price,
-                STRING_AGG(
-                  th.tenthuoc || ' x ' || ct.soluong ||
-                  (CASE WHEN ct.chuy IS NOT NULL AND ct.chuy <> '' THEN ' (' || ct.chuy || ')' ELSE '' END),
-                  ', '
-                ) AS prescriptionDetails,
+                b.benhnhanid as patientId,
+                -- Lấy tất cả thuốc
                 (
-                  SELECT STRING_AGG(dv.tendichvu || ' (' || dv.giadichvu || ' VND, ' || cdv.songay || ' ngày)', ', ')
-                  FROM chitietdichvu cdv
-                  JOIN dichvu dv ON cdv.dichvuid = dv.dichvuid
-                  WHERE cdv.toaid = t.toaid
+                    SELECT json_agg(json_build_object(
+                        'thuocid', ct.thuocid,
+                        'soluong', ct.soluong,
+                        'chuy', ct.chuy,
+                        'tenthuoc', th.tenthuoc
+                    ))
+                    FROM chitiettoathuoc ct
+                    JOIN thuoc th ON ct.thuocid = th.thuocid
+                    WHERE ct.toaid = t.toaid
+                ) AS medicines,
+                -- Lấy tất cả dịch vụ
+                (
+                    SELECT json_agg(json_build_object(
+                        'dichvuid', ctdv.dichvuid,
+                        'songay', ctdv.songay,
+                        'tendichvu', dv.tendichvu
+                    ))
+                    FROM chitietdichvu ctdv
+                    JOIN dichvu dv ON ctdv.dichvuid = dv.dichvuid
+                    WHERE ctdv.toaid = t.toaid
                 ) AS services
             FROM toathuoc t
             JOIN benhnhan b ON t.benhnhanid = b.benhnhanid
-            JOIN chitiettoathuoc ct ON t.toaid = ct.toaid
-            JOIN thuoc th ON ct.thuocid = th.thuocid
             LEFT JOIN thanhtoan tt ON t.toaid = tt.toaid
             WHERE t.toaid = $1
-            GROUP BY t.toaid, b.hoten, t.ngaykadon, tt.tongtien
         `, [toaid]);
         if (result.rows.length === 0) return res.status(404).json({ error: 'Không tìm thấy đơn thuốc' });
         res.json(result.rows[0]);

@@ -1,0 +1,144 @@
+import React, { useEffect, useState } from 'react';
+import Pagination from '@mui/material/Pagination';
+import { toast, Toaster } from 'sonner';
+import ServiceList from './ServiceList';
+import ServiceForm from './ServiceForm';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import SearchBar from '../../components/SearchBar';
+import { Container, Box, Button, Stack } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import axios from 'axios';
+
+const ServicePage = () => {
+    const [services, setServices] = useState([]);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [selectedService, setSelectedService] = useState(null);
+    const [openForm, setOpenForm] = useState(false);
+    const [openConfirm, setOpenConfirm] = useState(false);
+
+    const [searchQuery, setSearchQuery] = useState("");
+    console.log(selectedService);
+
+    useEffect(() => {
+        fetchServices(searchQuery);
+    }, [page, searchQuery]);
+
+    const fetchServices = async (query = "") => {
+        try {
+            const params = { page, pageSize: 10 };
+            if (query && query.trim() !== "") params.search = query;
+            const res = await axios.get('http://localhost:5000/api/dichvu', { params });
+            setServices(res.data.data);
+            setTotalPages(res.data.totalPages);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleAdd = () => {
+        setSelectedService(null);
+        setOpenForm(true);
+    };
+
+    const handleEdit = (service) => {
+        setSelectedService(service);
+        setOpenForm(true);
+    };
+
+    const handleDelete = (service) => {
+        setSelectedService(service);
+        setOpenConfirm(true);
+    };
+
+    const handleFormSubmit = async (data) => {
+        try {
+            if (selectedService) {
+                await axios.put(`http://localhost:5000/api/dichvu/${selectedService.dichvuid}`, data);
+                toast.success('Cập nhật dịch vụ thành công!');
+            } else {
+                await axios.post('http://localhost:5000/api/dichvu', data);
+                toast.success('Thêm dịch vụ thành công!');
+            }
+            setOpenForm(false);
+            fetchServices(page, searchQuery);
+        } catch (err) {
+            console.error(err);
+            toast.error('Có lỗi xảy ra khi lưu dịch vụ!');
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        try {
+            console.log('Xác nhận xóa dịch vụ:', selectedService);
+            await axios.delete(`http://localhost:5000/api/dichvu/${selectedService?.dichvuid}`);
+            toast.success('Xóa dịch vụ thành công!');
+            setOpenConfirm(false);
+            fetchServices(page, searchQuery);
+        } catch (err) {
+            console.error('Lỗi khi gọi API xóa:', err);
+            toast.error('Có lỗi xảy ra khi xóa dịch vụ!');
+            setOpenConfirm(false);
+        }
+    };
+
+    return (
+        <Container maxWidth={false} sx={{ py: 4, minHeight: "100vh", backgroundColor: "#f5f5f5", width: '100%', px: 0 }}>
+            <Toaster position="top-right" richColors />
+            <Box textAlign="center" mb={4}>
+                <h1 style={{ fontSize: "48px", fontWeight: "bold", color: "#333" }}>
+                    Quản lý Dịch vụ
+                </h1>
+            </Box>
+            <Stack direction="row" justifyContent="space-between" mb={4} alignItems="center">
+                <SearchBar
+                    value={searchQuery}
+                    onChange={e => {
+                        setSearchQuery(e.target.value);
+                        setPage(1);
+                    }}
+                    placeholder="Nhập tên dịch vụ..."
+                    sx={{ width: "300px" }}
+                />
+                <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    onClick={handleAdd}
+                >
+                    Thêm dịch vụ
+                </Button>
+            </Stack>
+            <ServiceList services={services} onEdit={handleEdit} onDelete={handleDelete} />
+            <Box display="flex" justifyContent="center" mt={4}>
+                <Pagination
+                    count={totalPages}
+                    page={page}
+                    onChange={(e, value) => setPage(value)}
+                    color="primary"
+                />
+            </Box>
+            {openForm && (
+                <ServiceForm
+                    service={selectedService}
+                    onClose={() => setOpenForm(false)}
+                    onSubmit={handleFormSubmit}
+                />
+            )}
+            {openConfirm && (
+                <ConfirmDialog
+                    open={openConfirm}
+                    title="Xác nhận xoá"
+                    content={`Bạn có chắc muốn xoá dịch vụ ${selectedService?.tendichvu}?`}
+                    onOk={handleConfirmDelete}
+                    onCancel={() => {
+                        console.log('Đóng dialog xác nhận xóa');
+                        setOpenConfirm(false);
+                    }}
+                />
+            )}
+        </Container>
+    );
+};
+
+export default ServicePage;

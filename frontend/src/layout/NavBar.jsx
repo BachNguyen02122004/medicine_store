@@ -2,6 +2,7 @@ import { Box, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from 
 import LocalPharmacyIcon from "@mui/icons-material/LocalPharmacy";
 import PeopleIcon from "@mui/icons-material/People";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import Service from "@mui/icons-material/Build";
 import { Link } from "react-router-dom";
 
 const navItems = [
@@ -16,9 +17,14 @@ const navItems = [
         to: "/benhnhan"
     },
     {
-        label: "Quản lý đơn hàng",
+        label: "Quản lý đơn thuốc",
         icon: <AttachMoneyIcon />,
         to: "/orders"
+    },
+    {
+        label: "Quản lý dịch vụ",
+        icon: <Service />,
+        to: "/dichvu"
     }
 ];
 

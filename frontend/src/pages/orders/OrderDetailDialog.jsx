@@ -34,39 +34,10 @@ const OrderDetailDialog = ({ open, order, onClose, onSave }) => {
     // Khởi tạo dữ liệu từ order
     useEffect(() => {
         if (open && order && order.id) {
-            setPatientName(order.patientName || '');
-            // Parse chi tiết đơn thuốc
-            const meds = order.prescriptionDetails
-                ? order.prescriptionDetails.split(',').map(str => {
-                    const match = str.trim().match(/^(.+?) x (\d+)(?: \((.+)\))?$/);
-                    if (match) {
-                        return {
-                            tenthuoc: match[1],
-                            soluong: match[2],
-                            chuy: match[3] || ''
-                        };
-                    }
-                    return null;
-                }).filter(Boolean)
-                : [];
-            setMedicines(meds);
-
-            // Parse dịch vụ
-            const services = order.services
-                ? order.services.split(',').map(str => {
-                    const match = str.trim().match(/^(.+?) \((.+?) VND, (\d+) ngày\)$/);
-                    if (match) {
-                        return {
-                            tendichvu: match[1],
-                            giadichvu: match[2],
-                            songay: Number(match[3]),
-                            dichvuid: ''
-                        };
-                    }
-                    return null;
-                }).filter(Boolean)
-                : [];
-            setSelectedDichVu(services);
+            setPatientName(order.patientName || order.patientname || '');
+            // Nếu order có mảng medicines và services thì dùng trực tiếp
+            setMedicines(Array.isArray(order.medicines) ? order.medicines : []);
+            setSelectedDichVu(Array.isArray(order.services) ? order.services : []);
         } else {
             setMedicines([]);
             setSelectedDichVu([]);
