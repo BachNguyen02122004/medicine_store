@@ -2,7 +2,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress } from '@mui/material';
 
 const AcLogTable = ({ logs, loading }) => (
-    <TableContainer component={Paper} className="shadow-md">
+    <TableContainer component={Paper} className="shadow-md" sx={{ maxHeight: 500, overflowY: 'auto' }}>
         <Table>
             <TableHead>
                 <TableRow className="bg-gray-100">
@@ -10,7 +10,7 @@ const AcLogTable = ({ logs, loading }) => (
                     <TableCell>Action</TableCell>
                     <TableCell>Object</TableCell>
                     <TableCell>Changes</TableCell>
-                    <TableCell>Time</TableCell>
+                    <TableCell>Thời gian</TableCell>
                 </TableRow>
             </TableHead>
             <TableBody>
@@ -25,15 +25,21 @@ const AcLogTable = ({ logs, loading }) => (
                         <TableCell colSpan={6} align="center">Không có dữ liệu</TableCell>
                     </TableRow>
                 ) : (
-                    logs.map((log, idx) => (
-                        <TableRow key={idx}>
-                            <TableCell>{log.logid}</TableCell>
-                            <TableCell>{log.action}</TableCell>
-                            <TableCell>{log.object}</TableCell>
-                            <TableCell>{log.changes}</TableCell>
-                            <TableCell>{new Date(log.createdat).toLocaleString()}</TableCell>
-                        </TableRow>
-                    ))
+                    logs.map((log, idx) => {
+                        const date = new Date(log.createdat);
+                        const hours = date.getHours();
+                        const period = hours < 12 ? 'sáng' : (hours < 18 ? 'chiều' : 'tối');
+                        const formatted = `${date.toLocaleDateString('vi-VN')} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} (${period})`;
+                        return (
+                            <TableRow key={idx}>
+                                <TableCell>{log.logid}</TableCell>
+                                <TableCell>{log.action}</TableCell>
+                                <TableCell>{log.object}</TableCell>
+                                <TableCell>{log.changes}</TableCell>
+                                <TableCell>{formatted}</TableCell>
+                            </TableRow>
+                        );
+                    })
                 )}
             </TableBody>
         </Table>

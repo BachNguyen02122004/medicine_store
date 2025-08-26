@@ -9,10 +9,10 @@ function MedicineList({ thuoc = [], onEdit, onDelete }) {
                 <Table sx={{ minWidth: 650 }} aria-label="medicine table">
                     <TableHead>
                         <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                            <TableCell sx={{ fontWeight: "600", color: "#333" }}>Tên Thuốc</TableCell>
-                            <TableCell sx={{ fontWeight: "600", color: "#333" }}>Số Lượng</TableCell>
-                            <TableCell sx={{ fontWeight: "600", color: "#333" }}>Giá Tiền</TableCell>
-                            <TableCell sx={{ fontWeight: "600", color: "#333" }}>Hành Động</TableCell>
+                            <TableCell sx={{ fontWeight: "600", color: "#333", width: '25%' }}>Tên Thuốc</TableCell>
+                            <TableCell sx={{ fontWeight: "600", color: "#333", width: '25%' }}>Số Lượng</TableCell>
+                            <TableCell sx={{ fontWeight: "600", color: "#333", width: '25%' }}>Giá Tiền</TableCell>
+                            <TableCell sx={{ fontWeight: "600", color: "#333", width: '25%', textAlign: 'center' }}>Hành Động</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -23,28 +23,30 @@ function MedicineList({ thuoc = [], onEdit, onDelete }) {
                         ) : (
                             thuoc.map((t, idx) => (
                                 <TableRow key={t.thuocid || t.id || idx} sx={{ "&:hover": { backgroundColor: "#fafafa" } }}>
-                                    <TableCell sx={{ color: "#333" }}>{t.tenthuoc}</TableCell>
-                                    <TableCell sx={{ color: "#333" }}>{t.soluongcong}</TableCell>
-                                    <TableCell sx={{ color: "#333" }}>{t.giatienmotcong} VNĐ</TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="contained"
-                                            color="warning"
-                                            startIcon={<EditIcon />}
-                                            onClick={() => onEdit(t)}
-                                            sx={{ mr: 1, minWidth: "auto" }}
-                                        >
-                                            Sửa
-                                        </Button>
-                                        <Button
-                                            variant="contained"
-                                            color="error"
-                                            startIcon={<DeleteIcon />}
-                                            onClick={() => onDelete(t.thuocid)}
-                                            sx={{ minWidth: "auto" }}
-                                        >
-                                            Xóa
-                                        </Button>
+                                    <TableCell sx={{ color: "#333", width: '25%' }}>{t.tenthuoc}</TableCell>
+                                    <TableCell sx={{ color: "#333", width: '25%' }}>{t.soluongcong}</TableCell>
+                                    <TableCell sx={{ color: "#333", width: '25%' }}>{Number(t.giatienmotcong).toLocaleString()} VNĐ</TableCell>
+                                    <TableCell sx={{ width: '25%' }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                            <Button
+                                                variant="contained"
+                                                color="warning"
+                                                startIcon={<EditIcon />}
+                                                onClick={() => onEdit(t)}
+                                                sx={{ mr: 1, minWidth: "auto" }}
+                                            >
+                                                Sửa
+                                            </Button>
+                                            <Button
+                                                variant="contained"
+                                                color="error"
+                                                startIcon={<DeleteIcon />}
+                                                onClick={() => onDelete(t.thuocid)}
+                                                sx={{ minWidth: "auto" }}
+                                            >
+                                                Xóa
+                                            </Button>
+                                        </Box>
                                     </TableCell>
                                 </TableRow>
                             ))

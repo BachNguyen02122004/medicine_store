@@ -78,7 +78,7 @@ function BenhNhanList({ benhnhans, onEdit, onDelete }) {
                                 <TableCell sx={{ fontWeight: '600', color: '#333' }}>Tuổi</TableCell>
                                 <TableCell sx={{ fontWeight: '600', color: '#333' }}>Số điện thoại</TableCell>
                                 <TableCell sx={{ fontWeight: '600', color: '#333' }}>Tiền sử bệnh</TableCell>
-                                <TableCell sx={{ fontWeight: '600', color: '#333' }}>Hành động</TableCell>
+                                <TableCell sx={{ fontWeight: '600', color: '#333', textAlign: 'center' }}>Hành động</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -97,32 +97,34 @@ function BenhNhanList({ benhnhans, onEdit, onDelete }) {
                                         <TableCell sx={{ color: '#333' }}>{bn.sodienthoai}</TableCell>
                                         <TableCell sx={{ color: '#333' }}>{bn.tiensubenh}</TableCell>
                                         <TableCell>
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                sx={{ mr: 1, minWidth: 'auto' }}
-                                                onClick={() => handleShowCart(bn)}
-                                            >
-                                                Xem giỏ hàng
-                                            </Button>
-                                            <Button
-                                                variant="contained"
-                                                color="warning"
-                                                startIcon={<EditIcon />}
-                                                onClick={() => onEdit(bn)}
-                                                sx={{ mr: 1, minWidth: 'auto' }}
-                                            >
-                                                Sửa
-                                            </Button>
-                                            <Button
-                                                variant="contained"
-                                                color="error"
-                                                startIcon={<DeleteIcon />}
-                                                onClick={() => onDelete(bn.benhnhanid)}
-                                                sx={{ minWidth: 'auto' }}
-                                            >
-                                                Xóa
-                                            </Button>
+                                            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                <Button
+                                                    variant="contained"
+                                                    color="primary"
+                                                    sx={{ mr: 1, minWidth: 'auto' }}
+                                                    onClick={() => handleShowCart(bn)}
+                                                >
+                                                    Xem giỏ hàng
+                                                </Button>
+                                                <Button
+                                                    variant="contained"
+                                                    color="warning"
+                                                    startIcon={<EditIcon />}
+                                                    onClick={() => onEdit(bn)}
+                                                    sx={{ mr: 1, minWidth: 'auto' }}
+                                                >
+                                                    Sửa
+                                                </Button>
+                                                <Button
+                                                    variant="contained"
+                                                    color="error"
+                                                    startIcon={<DeleteIcon />}
+                                                    onClick={() => onDelete(bn.benhnhanid)}
+                                                    sx={{ minWidth: 'auto' }}
+                                                >
+                                                    Xóa
+                                                </Button>
+                                            </Box>
                                         </TableCell>
                                     </TableRow>
                                 ))

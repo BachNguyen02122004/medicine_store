@@ -18,14 +18,14 @@ const navItems = [
         to: "/benhnhan"
     },
     {
-        label: "Quản lý đơn thuốc",
-        icon: <AssignmentTurnedInRoundedIcon />,
-        to: "/orders"
-    },
-    {
         label: "Quản lý dịch vụ",
         icon: <AttachMoneyIcon />,
         to: "/dichvu"
+    },
+    {
+        label: "Quản lý đơn thuốc",
+        icon: <AssignmentTurnedInRoundedIcon />,
+        to: "/orders"
     },
     {
         label: "Quản lý hành động",

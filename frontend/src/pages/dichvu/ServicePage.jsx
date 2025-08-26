@@ -104,7 +104,6 @@ const ServicePage = () => {
             });
             toast.success('Xóa dịch vụ thành công!');
             setOpenConfirm(false);
-            // Nếu xóa hết dịch vụ ở trang hiện tại, chuyển về trang đầu
             if (services.length === 1 && page > 1) {
                 setPage(1);
                 fetchServices(1, searchQuery);
