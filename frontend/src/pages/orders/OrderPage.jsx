@@ -41,13 +41,13 @@ const AddPrescriptionModal = ({ open, onClose, onSuccess }) => {
     const [note, setNote] = useState("");
 
     useEffect(() => {
-        fetch("http://localhost:5000/api/thuoc")
+        fetch("http://localhost:5000/api/thuoc/all")
             .then(res => res.json())
             .then(data => setThuocList(data.data || []));
         fetch("http://localhost:5000/api/benhnhan")
             .then(res => res.json())
             .then(data => setBenhNhanList(data.data || []));
-        fetch("http://localhost:5000/api/dichvu")
+        fetch("http://localhost:5000/api/dichvu/all")
             .then(res => res.json())
             .then(data => setDichVuList(data.data || []));
     }, [open]);
@@ -93,7 +93,7 @@ const AddPrescriptionModal = ({ open, onClose, onSuccess }) => {
     };
 
     const handleSubmit = async () => {
-        if (!selectedBenhNhanId || selectedThuoc.length === 0) return;
+        if (!selectedBenhNhanId) return;
         const patientObj = benhNhanList.find(b => b.benhnhanid === Number(selectedBenhNhanId));
         const patientName = patientObj ? patientObj.hoten : "";
         await fetch("http://localhost:5000/api/prescriptions", {
@@ -108,6 +108,23 @@ const AddPrescriptionModal = ({ open, onClose, onSuccess }) => {
                     dates: item.dates
                 })),
                 note
+            })
+        });
+        await fetch("http://localhost:5000/api/action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "create",
+                object: "donthuoc",
+                changes: `Thêm đơn thuốc mới cho bệnh nhân: ${patientName} với ${JSON.stringify({
+                    medicines: selectedThuoc.map(item => ({ thuocid: Number(item.thuocid), soluong: Number(item.soluong) })),
+                    services: selectedDichVu.map(item => ({
+                        dichvuid: Number(item.dichvuid),
+                        songay: Number(item.songay),
+                        dates: item.dates
+                    })),
+                    note
+                })}`
             })
         });
         toast.success("Thêm đơn thuốc thành công!");
@@ -230,30 +247,33 @@ const PrescriptionTable = ({ prescriptions, onViewDetails }) => {
             headerName: 'Lưu ý bệnh nhân',
             width: 220,
             renderCell: (params) => {
-                const luuYArr = params.row.medicines?.map(m => m.luuydonthuoc).filter(Boolean);
-                return luuYArr && luuYArr.length > 0 ? (
-                    <div className='flex flex-col'>
-                        {luuYArr.map((ly, idx) => <div key={idx}>{ly}</div>)}
-                    </div>
-                ) : <span style={{ color: '#888' }}>Không có</span>;
+                return params.row.luuydonthuoc ? <span>{params.row.luuydonthuoc}</span> : <span style={{ color: '#888' }}>Không có</span>;
             }
         },
         { field: 'examinationdate', headerName: 'Ngày Khám', width: 150 },
         {
-            field: 'medicines', headerName: 'Chi Tiết Đơn Thuốc', width: 300, renderCell: (params) => {
-                console.log('Rendering medicines for row:', params.row);
-                return params.row.medicines?.length ? <div className='flex flex-col'>{params.row.medicines?.map((item, idx) => (
-                    <div key={idx}>
-                        {item.tenthuoc} ({item.soluong})
-                    </div>
-                ))}</div> : <span style={{ color: '#888' }}>Không có</span>
+            field: 'medicines',
+            headerName: 'Chi Tiết Đơn Thuốc',
+            width: 300,
+            renderCell: (params) => {
+                const medicines = Array.isArray(params.row.medicines) ? params.row.medicines : [];
+                if (!medicines.length) return <span style={{ color: '#888' }}>Không có</span>;
+                return (
+                    <ul>
+                        {medicines.map((item, idx) => (
+                            <li key={idx}>
+                                {item.tenthuoc} ({item.soluong})
+                            </li>
+                        ))}
+                    </ul>
+                );
             },
         },
         {
             field: 'services', headerName: 'Dịch Vụ', width: 250,
             renderCell: (params) => {
-                console.log('Rendering services for row:', params.row);
-                return params.row.services?.length ? <div className='flex flex-col'>{params.row.services?.map((item, idx) => (
+                const svs = Array.isArray(params.row.services) ? params.row.services : [];
+                return svs.length ? <div className='flex flex-col'>{svs.map((item, idx) => (
                     <div key={idx}>
                         {item.tendichvu} ({item.songay} ngày)
                     </div>
@@ -275,7 +295,13 @@ const PrescriptionTable = ({ prescriptions, onViewDetails }) => {
     return (
         <Box display="flex" justifyContent="center" alignItems="center" sx={{ width: '100%' }}>
             <Paper sx={{ height: 500, width: 1200, maxWidth: '100%' }}>
-                <DataGrid rows={prescriptions} columns={columns} pageSize={5} rowsPerPageOptions={[5]} />
+                <DataGrid
+                    rows={prescriptions}
+                    columns={columns}
+                    pageSize={5}
+                    rowsPerPageOptions={[5]}
+                    getRowHeight={() => 'auto'}
+                />
             </Paper>
         </Box>
     );
@@ -288,13 +314,15 @@ const PatientDetailsModal = ({ open, onClose, patient, onReload }) => {
     const [thuocList, setThuocList] = useState([]);
     const [dichVuList, setDichVuList] = useState([]);
     const [selectedDichVu, setSelectedDichVu] = useState([]);
+    const [luuyDonThuoc, setLuuyDonThuoc] = useState("");
+    console.log(luuyDonThuoc);
 
     useEffect(() => {
         if (open && patient) {
             setPatientName(patient.patientname);
-
             setMedicines(patient.medicines || []);
             setSelectedDichVu(patient.services || []);
+            setLuuyDonThuoc(patient.luuydonthuoc || "");
         }
     }, [open, patient]);
 
@@ -372,7 +400,34 @@ const PatientDetailsModal = ({ open, onClose, patient, onReload }) => {
                 body: JSON.stringify({
                     patientName,
                     medicines: medicinesData,
-                    services: servicesData
+                    services: servicesData,
+                    luuydonthuoc: luuyDonThuoc
+                })
+            });
+            const changes = [];
+            if (patient) {
+                if (patient.luuydonthuoc !== luuyDonThuoc) {
+                    changes.push(`Lưu ý đơn thuốc: ${patient.luuydonthuoc || ""} → ${luuyDonThuoc}`);
+                }
+                // Medicines
+                const oldMeds = Array.isArray(patient.medicines) ? patient.medicines : [];
+                if (JSON.stringify(oldMeds) !== JSON.stringify(medicines)) {
+                    changes.push("Cập nhật thuốc");
+                }
+                // Services
+                const oldSv = Array.isArray(patient.services) ? patient.services : [];
+                if (JSON.stringify(oldSv) !== JSON.stringify(selectedDichVu)) {
+                    changes.push("Cập nhật dịch vụ");
+                }
+            }
+            await fetch("http://localhost:5000/api/action", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "update",
+                    object: "prescription",
+                    objectId: patient.id,
+                    changes: changes.join("; ")
                 })
             });
             if (!res.ok) throw new Error("Cập nhật thất bại");
@@ -380,9 +435,7 @@ const PatientDetailsModal = ({ open, onClose, patient, onReload }) => {
                 onReload();
             }
             toast.success("Cập nhật đơn thuốc thành công!");
-            setTimeout(() => {
-                onClose();
-            }, 1200);
+            onClose();
         } catch {
             toast.error("Có lỗi khi cập nhật đơn thuốc!");
         }
@@ -394,6 +447,16 @@ const PatientDetailsModal = ({ open, onClose, patient, onReload }) => {
                 <DialogTitle>Chi Tiết & Cập Nhật Đơn Thuốc</DialogTitle>
                 <DialogContent>
                     <TextField label="Họ Tên" value={patientName} fullWidth disabled sx={{ mb: 2 }} />
+                    <Box sx={{ mb: 2 }}>
+                        <TextField
+                            label="Lưu ý đơn thuốc"
+                            multiline
+                            minRows={3}
+                            value={luuyDonThuoc}
+                            onChange={e => setLuuyDonThuoc(e.target.value)}
+                            fullWidth
+                        />
+                    </Box>
                     <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                         <Typography sx={{ minWidth: 120, flexShrink: 0 }}>Thuốc:</Typography>
                         <Button variant="outlined" onClick={handleAddMedicine}>Thêm thuốc</Button>
@@ -485,11 +548,14 @@ const PrescriptionManagementPage = () => {
         fetch('http://localhost:5000/api/prescriptions')
             .then(res => res.json())
             .then(data => {
-
-                setPrescriptions(data);
+                const normalizedData = data.map(item => ({
+                    ...item,
+                    medicines: Array.isArray(item.medicines) ? item.medicines : []
+                }));
+                console.log('Normalized prescriptions:', normalizedData);
+                setPrescriptions(normalizedData);
             });
     };
-
     useEffect(() => {
         fetchPrescriptions();
     }, []);

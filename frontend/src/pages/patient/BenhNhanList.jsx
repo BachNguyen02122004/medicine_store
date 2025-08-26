@@ -19,23 +19,21 @@ function BenhNhanList({ benhnhans, onEdit, onDelete }) {
         }
 
         try {
-            console.log('Fetching prescriptions for benhnhanid:', bn.benhnhanid);
-            const response = await fetch(`http://localhost:5000/api/prescriptions/${bn.benhnhanid}`);
+            const response = await fetch(`http://localhost:5000/api/prescriptions/patient?benhnhanid=${bn.benhnhanid}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
             const data = await response.json();
-            console.log('API response:', data);
-
-            const orders = data.id ? [{
-                id: data.id,
-                patientName: data.patientname || '',
-                examinationDate: data.examinationdate ? new Date(data.examinationdate).toLocaleDateString('vi-VN') : '',
-                medicines: Array.isArray(data.medicines) ? data.medicines : [],
-                services: Array.isArray(data.services) ? data.services : [],
-                price: data.price != null && !isNaN(data.price) ? Number(data.price) : 0
-            }] : [];
-            console.log('Parsed orders:', orders);
+            // data là mảng đơn thuốc
+            const orders = Array.isArray(data) ? data.map(order => ({
+                id: order.id,
+                patientName: order.patientname || '',
+                examinationDate: order.examinationdate ? new Date(order.examinationdate).toLocaleDateString('vi-VN') : '',
+                medicines: Array.isArray(order.medicines) ? order.medicines : [],
+                services: Array.isArray(order.services) ? order.services : [],
+                price: order.price != null && !isNaN(order.price) ? Number(order.price) : 0,
+                luuydonthuoc: order.luuydonthuoc || ''
+            })) : [];
             setCartOrders(orders);
             setCartPatient(bn);
             setOpenCart(true);
@@ -147,6 +145,7 @@ function BenhNhanList({ benhnhans, onEdit, onDelete }) {
                                     <TableCell>Ngày khám</TableCell>
                                     <TableCell>Chi tiết thuốc</TableCell>
                                     <TableCell>Dịch vụ</TableCell>
+                                    <TableCell>Lưu ý đơn thuốc</TableCell>
                                     <TableCell>Giá</TableCell>
                                     <TableCell>Hành động</TableCell>
                                 </TableRow>
@@ -178,6 +177,7 @@ function BenhNhanList({ benhnhans, onEdit, onDelete }) {
                                                 </ul>
                                             ) : <span style={{ color: '#888' }}>Không có</span>}
                                         </TableCell>
+                                        <TableCell>{order.luuydonthuoc ? order.luuydonthuoc : <span style={{ color: '#888' }}>Không có</span>}</TableCell>
                                         <TableCell>{order.price ? Number(order.price).toLocaleString() + ' VND' : ''}</TableCell>
                                         <TableCell>
                                             <Button variant="outlined" onClick={() => handleViewOrderDetail(order)}>

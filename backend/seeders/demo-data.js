@@ -100,6 +100,33 @@ module.exports = {
             });
         }
         await queryInterface.bulkInsert("chitietdichvu", chiTietDichVuData);
+
+        await queryInterface.bulkInsert("actionlog", [
+            {
+                action: "create",
+                object: "medicine",
+                objectId: 1,
+                changes: "Tên thuốc: Paracetamol; Số lượng còn: 100; Giá tiền một công: 5000",
+                createdat: new Date(),
+                updatedat: new Date(),
+            },
+            {
+                action: "update",
+                object: "medicine",
+                objectId: 1,
+                changes: "Số lượng còn: 90",
+                createdat: new Date(),
+                updatedat: new Date(),
+            },
+            {
+                action: "delete",
+                object: "medicine",
+                objectId: 1,
+                changes: "Xóa thuốc: Paracetamol",
+                createdat: new Date(),
+                updatedat: new Date(),
+            },
+        ]);
     },
 
     async down(queryInterface, Sequelize) {
@@ -110,5 +137,7 @@ module.exports = {
         await queryInterface.bulkDelete("thuoc", null, {});
         await queryInterface.bulkDelete("chitietdichvu", null, {});
         await queryInterface.bulkDelete("dichvu", null, {});
+        await queryInterface.bulkDelete("actionlog", null, {});
+        await queryInterface.bulkDelete("chitietdichvu", null, {});
     },
 };

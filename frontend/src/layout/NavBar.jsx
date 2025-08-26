@@ -4,6 +4,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import Service from "@mui/icons-material/Build";
 import { Link } from "react-router-dom";
+import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded';
 
 const navItems = [
     {
@@ -18,13 +19,18 @@ const navItems = [
     },
     {
         label: "Quản lý đơn thuốc",
-        icon: <AttachMoneyIcon />,
+        icon: <AssignmentTurnedInRoundedIcon />,
         to: "/orders"
     },
     {
         label: "Quản lý dịch vụ",
-        icon: <Service />,
+        icon: <AttachMoneyIcon />,
         to: "/dichvu"
+    },
+    {
+        label: "Quản lý hành động",
+        icon: <Service />,
+        to: "/action"
     }
 ];
 

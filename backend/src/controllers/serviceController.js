@@ -1,6 +1,15 @@
 const DichVu = require('../models/dichvuModel');
 const { Op } = require('sequelize');
 
+exports.getAllServicesNoPaging = async (req, res) => {
+    try {
+        const services = await DichVu.findAll();
+        res.json({ data: services });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 exports.getAllServices = async (req, res) => {
     try {
         const { search, page = 1, pageSize = 10 } = req.query;

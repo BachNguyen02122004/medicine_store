@@ -171,6 +171,31 @@ module.exports = {
             createdat: { allowNull: false, type: Sequelize.DATE },
             updatedat: { allowNull: false, type: Sequelize.DATE },
         });
+        await queryInterface.createTable("actionlog", {
+            logid: {
+                type: Sequelize.INTEGER,
+                autoIncrement: true,
+                primaryKey: true,
+            },
+            action: {
+                type: Sequelize.STRING(20),
+                allowNull: false,
+            },
+            object: {
+                type: Sequelize.STRING(50),
+                allowNull: true,
+            },
+            objectId: {
+                type: Sequelize.INTEGER,
+                allowNull: true,
+            },
+            changes: {
+                type: Sequelize.TEXT,
+                allowNull: true,
+            },
+            createdat: { allowNull: false, type: Sequelize.DATE },
+            updatedat: { allowNull: false, type: Sequelize.DATE },
+        });
     },
 
     async down(queryInterface, Sequelize) {
@@ -181,5 +206,6 @@ module.exports = {
         await queryInterface.dropTable("toathuoc");
         await queryInterface.dropTable("benhnhan");
         await queryInterface.dropTable("thuoc");
+        await queryInterface.dropTable("actionlog");
     },
 };

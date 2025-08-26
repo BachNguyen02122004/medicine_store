@@ -21,12 +21,12 @@ const ServicePage = () => {
     console.log(selectedService);
 
     useEffect(() => {
-        fetchServices(searchQuery);
+        fetchServices(page, searchQuery);
     }, [page, searchQuery]);
 
-    const fetchServices = async (query = "") => {
+    const fetchServices = async (pageNum = 1, query = "") => {
         try {
-            const params = { page, pageSize: 10 };
+            const params = { page: pageNum, pageSize: 10 };
             if (query && query.trim() !== "") params.search = query;
             const res = await axios.get('http://localhost:5000/api/dichvu', { params });
             setServices(res.data.data);
@@ -54,14 +54,39 @@ const ServicePage = () => {
     const handleFormSubmit = async (data) => {
         try {
             if (selectedService) {
+                const oldService = { ...selectedService };
                 await axios.put(`http://localhost:5000/api/dichvu/${selectedService.dichvuid}`, data);
+                // Tạo log các trường đã thay đổi
+                const changes = [];
+                if (oldService.tendichvu !== data.tendichvu) {
+                    changes.push(`Tên dịch vụ: ${oldService.tendichvu} → ${data.tendichvu}`);
+                }
+                if (String(oldService.giadichvu) !== String(data.giadichvu)) {
+                    changes.push(`Giá dịch vụ: ${oldService.giadichvu} → ${data.giadichvu}`);
+                }
+                await axios.post('http://localhost:5000/api/action', {
+                    action: 'update',
+                    object: 'dichvu',
+                    objectId: selectedService.dichvuid,
+                    changes: changes.join('; ')
+                });
                 toast.success('Cập nhật dịch vụ thành công!');
+                setOpenForm(false);
+                fetchServices(page, searchQuery);
             } else {
-                await axios.post('http://localhost:5000/api/dichvu', data);
+                const res = await axios.post('http://localhost:5000/api/dichvu', data);
+                const newService = res.data;
+                await axios.post('http://localhost:5000/api/action', {
+                    action: 'create',
+                    object: 'dichvu',
+                    objectId: newService.dichvuid,
+                    changes: `Tên dịch vụ: ${newService.tendichvu}; Giá dịch vụ: ${newService.giadichvu}`
+                });
                 toast.success('Thêm dịch vụ thành công!');
+                setOpenForm(false);
+                setPage(1); // Chuyển về trang đầu để thấy dịch vụ mới
+                fetchServices(1, searchQuery);
             }
-            setOpenForm(false);
-            fetchServices(page, searchQuery);
         } catch (err) {
             console.error(err);
             toast.error('Có lỗi xảy ra khi lưu dịch vụ!');
@@ -70,11 +95,22 @@ const ServicePage = () => {
 
     const handleConfirmDelete = async () => {
         try {
-            console.log('Xác nhận xóa dịch vụ:', selectedService);
             await axios.delete(`http://localhost:5000/api/dichvu/${selectedService?.dichvuid}`);
+            await axios.post('http://localhost:5000/api/action', {
+                action: 'delete',
+                object: 'dichvu',
+                objectId: selectedService?.dichvuid,
+                changes: `Tên dịch vụ: ${selectedService?.tendichvu}; Giá dịch vụ: ${selectedService?.giadichvu}`
+            });
             toast.success('Xóa dịch vụ thành công!');
             setOpenConfirm(false);
-            fetchServices(page, searchQuery);
+            // Nếu xóa hết dịch vụ ở trang hiện tại, chuyển về trang đầu
+            if (services.length === 1 && page > 1) {
+                setPage(1);
+                fetchServices(1, searchQuery);
+            } else {
+                fetchServices(page, searchQuery);
+            }
         } catch (err) {
             console.error('Lỗi khi gọi API xóa:', err);
             toast.error('Có lỗi xảy ra khi xóa dịch vụ!');

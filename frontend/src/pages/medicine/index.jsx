@@ -39,7 +39,14 @@ function App() {
 
     const addThuoc = async (newThuoc) => {
         try {
-            await axios.post("http://localhost:5000/api/thuoc", newThuoc);
+            const res = await axios.post("http://localhost:5000/api/thuoc", newThuoc);
+            const newId = res.data?.thuocid || res.data?.id || null;
+            await axios.post("http://localhost:5000/api/action", {
+                action: "create",
+                object: "medicine",
+                objectId: newId,
+                changes: `Tên thuốc: ${newThuoc.tenthuoc}; Số lượng còn: ${newThuoc.soluongcong}; Giá tiền một công: ${newThuoc.giatienmotcong}`
+            });
             fetchThuoc(page, searchQuery);
             setShowForm(false);
             toast.success('Thêm thuốc thành công!');
@@ -52,6 +59,25 @@ function App() {
     const updateThuoc = async (id, updatedThuoc) => {
         try {
             await axios.put(`http://localhost:5000/api/thuoc/${id}`, updatedThuoc);
+            // So sánh các trường đã thay đổi
+            const changes = [];
+            if (editingThuoc) {
+                if (editingThuoc.tenthuoc !== updatedThuoc.tenthuoc) {
+                    changes.push(`Tên thuốc: ${editingThuoc.tenthuoc} → ${updatedThuoc.tenthuoc}`);
+                }
+                if (Number(editingThuoc.soluongcong) !== Number(updatedThuoc.soluongcong)) {
+                    changes.push(`Số lượng còn: ${editingThuoc.soluongcong} → ${updatedThuoc.soluongcong}`);
+                }
+                if (Number(editingThuoc.giatienmotcong) !== Number(updatedThuoc.giatienmotcong)) {
+                    changes.push(`Giá tiền một công: ${editingThuoc.giatienmotcong} → ${updatedThuoc.giatienmotcong}`);
+                }
+            }
+            await axios.post("http://localhost:5000/api/action", {
+                action: "update",
+                object: "medicine",
+                objectId: id,
+                changes: changes.join("; ")
+            });
             fetchThuoc(page, searchQuery);
             setEditingThuoc(null);
             setShowForm(false);
@@ -143,7 +169,15 @@ function App() {
                 content="Bạn có chắc chắn muốn xóa thuốc này?"
                 onOk={async () => {
                     try {
+                        // Lấy thông tin thuốc trước khi xóa
+                        const deletedThuoc = thuoc.find(t => t.thuocid === deleteId);
                         await axios.delete(`http://localhost:5000/api/thuoc/${deleteId}`);
+                        await axios.post("http://localhost:5000/api/action", {
+                            action: "delete",
+                            object: "medicine",
+                            objectId: deleteId,
+                            changes: deletedThuoc ? `Xóa thuốc: ${deletedThuoc.tenthuoc}` : "Xóa thuốc"
+                        });
                         fetchThuoc(page, searchQuery);
                         toast.success('Xóa thuốc thành công!');
                     } catch (err) {

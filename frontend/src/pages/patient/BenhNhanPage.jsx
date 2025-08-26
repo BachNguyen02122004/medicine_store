@@ -47,7 +47,18 @@ function BenhNhanPage() {
 
     const addBenhNhan = async (newBenhNhan) => {
         try {
-            await axios.post("http://localhost:5000/api/benhnhan", newBenhNhan);
+            const res = await axios.post("http://localhost:5000/api/benhnhan", newBenhNhan);
+            const benhnhanId = res.data?.benhnhanid || res.data?.id;
+            // Tạo log chi tiết các trường đã thêm
+            const changes = Object.entries(newBenhNhan)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join("; ");
+            await axios.post("http://localhost:5000/api/action", {
+                action: "create",
+                object: "benhnhan",
+                objectId: benhnhanId,
+                changes
+            });
             fetchBenhNhans(page);
             setShowForm(false);
             toast.success("Thêm bệnh nhân thành công!");
@@ -60,6 +71,28 @@ function BenhNhanPage() {
     const updateBenhNhan = async (id, updatedBenhNhan) => {
         try {
             await axios.put(`http://localhost:5000/api/benhnhan/${id}`, updatedBenhNhan);
+            // So sánh các trường đã thay đổi
+            const changes = [];
+            if (editingBenhNhan) {
+                if (editingBenhNhan.hoten !== updatedBenhNhan.hoten) {
+                    changes.push(`Họ tên: ${editingBenhNhan.hoten} → ${updatedBenhNhan.hoten}`);
+                }
+                if (String(editingBenhNhan.tuoi) !== String(updatedBenhNhan.tuoi)) {
+                    changes.push(`Tuổi: ${editingBenhNhan.tuoi} → ${updatedBenhNhan.tuoi}`);
+                }
+                if (editingBenhNhan.sodienthoai !== updatedBenhNhan.sodienthoai) {
+                    changes.push(`Số điện thoại: ${editingBenhNhan.sodienthoai} → ${updatedBenhNhan.sodienthoai}`);
+                }
+                if (editingBenhNhan.tiensubenh !== updatedBenhNhan.tiensubenh) {
+                    changes.push(`Tiền sử bệnh: ${editingBenhNhan.tiensubenh} → ${updatedBenhNhan.tiensubenh}`);
+                }
+            }
+            await axios.post("http://localhost:5000/api/action", {
+                action: "update",
+                object: "benhnhan",
+                objectId: id,
+                changes: changes.join("; ")
+            });
             fetchBenhNhans(page);
             setEditingBenhNhan(null);
             setShowForm(false);
@@ -73,6 +106,12 @@ function BenhNhanPage() {
     const deleteBenhNhan = async () => {
         try {
             await axios.delete(`http://localhost:5000/api/benhnhan/${deleteId}`);
+            await axios.post("http://localhost:5000/api/action", {
+                action: "delete",
+                object: "benhnhan",
+                objectId: deleteId,
+                changes: `Xóa bệnh nhân: ${deleteId}`
+            });
             fetchBenhNhans(page);
             toast.success("Xóa bệnh nhân thành công!");
         } catch (err) {
@@ -90,7 +129,7 @@ function BenhNhanPage() {
 
     const handleViewOrders = async (benhnhan) => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/prescriptions/${benhnhan.benhnhanid}`);
+            const res = await axios.get(`http://localhost:5000/api/prescriptions/patient?benhnhanid=${benhnhan.benhnhanid}`);
             return res.data ? [res.data] : [];
         } catch {
             toast.error('Không lấy được đơn thuốc của bệnh nhân này');

@@ -1,6 +1,14 @@
 const ThuocModel = require("../models/thuocModel");
 
 const thuocController = {
+    async getAllThuocNoPaging(req, res) {
+        try {
+            const data = await ThuocModel.getAll();
+            res.json({ data });
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    },
     async getAllThuoc(req, res) {
         try {
             let { page, limit, search } = req.query;

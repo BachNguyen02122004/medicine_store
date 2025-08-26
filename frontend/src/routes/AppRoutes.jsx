@@ -4,6 +4,7 @@ import PatientPage from "../pages/patient/BenhNhanPage";
 import OrderPage from "../pages/orders/OrderPage";
 import MainLayout from "../layout/MainLayout";
 import ServicePage from "../pages/dichvu/ServicePage";
+import AcLog from "../pages/log/AcLog";
 export default function AppRoutes() {
     return (
         <BrowserRouter>
@@ -13,6 +14,7 @@ export default function AppRoutes() {
                 <Route path="/benhnhan" element={<MainLayout><PatientPage /></MainLayout>} />
                 <Route path="/orders" element={<MainLayout><OrderPage /></MainLayout>} />
                 <Route path="/dichvu" element={<MainLayout><ServicePage /></MainLayout>} />
+                <Route path="/action" element={<MainLayout><AcLog /></MainLayout>} />
             </Routes>
         </BrowserRouter >
     );
